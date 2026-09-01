@@ -1,0 +1,22 @@
+version: 1
+commands:
+  - command: repository_writes
+    scope: active_product_repository
+    approval: within_explicit_build_request
+    destructive_risk: low
+  - command: deploy_staging
+    scope: configured_staging
+    approval: project_owner_policy
+    destructive_risk: medium
+  - command: deploy_production
+    scope: configured_production
+    approval: after_release_gates
+    destructive_risk: high
+  - command: delete_production_data
+    scope: exact_resolved_target
+    approval: explicit_per_action
+    destructive_risk: critical
+  - command: billing_or_purchase
+    scope: exact_service
+    approval: explicit_per_action
+    destructive_risk: high

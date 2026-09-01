@@ -1,0 +1,51 @@
+name: Work package
+description: Outcome-focused implementation package
+title: "[WP] "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements and evidence
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope, non-goals, and dependencies
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification commands
+    validations:
+      required: true
+  - type: dropdown
+    id: owner
+    attributes:
+      label: Role owner
+      options:
+        - Product Designer
+        - Project Designer
+        - Backend Engineer
+        - Frontend Engineer
+        - DevOps Engineer
+        - Database Specialist
+        - Applied AI Engineer
+        - Context & Prompt Engineer
+        - Senior QA
+        - Software Auditor
+    validations:
+      required: true

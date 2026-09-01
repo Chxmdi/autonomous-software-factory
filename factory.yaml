@@ -1,0 +1,73 @@
+version: 1
+name: Autonomous Software Factory
+
+principles:
+  - repository_is_durable_memory
+  - evidence_before_completion
+  - least_privilege
+  - deterministic_control_plane
+  - independent_quality_gates
+  - reversible_delivery
+
+roles:
+  orchestrator: BUILD_PRODUCT.md
+  product_designer: roles/01-product-designer.md
+  project_designer: roles/02-project-designer.md
+  backend_engineer: roles/03-backend-engineer.md
+  frontend_engineer: roles/04-frontend-engineer.md
+  devops_engineer: roles/05-devops-engineer.md
+  database_specialist: roles/06-database-specialist.md
+  senior_qa: roles/07-senior-qa.md
+  applied_ai_engineer: roles/08-applied-ai-engineer.md
+  context_prompt_engineer: roles/09-context-prompt-engineer.md
+  software_auditor: roles/10-software-auditor.md
+  digital_twin: roles/11-digital-twin.md
+
+workflow:
+  - context_bootstrap
+  - product_ready
+  - architecture_ready
+  - implementation_ready
+  - feature_complete
+  - verification_ready
+  - qa_passed
+  - audit_passed
+  - production_release
+
+gates:
+  product_ready:
+    owner: product_designer
+    evidence: [docs/PRODUCT.md, docs/UX_SPEC.md, docs/DESIGN_SYSTEM.md]
+  architecture_ready:
+    owner: project_designer
+    evidence: [docs/ARCHITECTURE.md, docs/API_CONTRACTS.md, docs/DATA_MODEL.md, docs/SECURITY.md, docs/TEST_STRATEGY.md]
+  implementation_ready:
+    owner: project_designer
+    evidence: [docs/exec-plans/ACTIVE.md]
+  feature_complete:
+    owner: engineering_specialists
+    evidence: [implementation, tests]
+  verification_ready:
+    owner: engineering_specialists
+    evidence: [test_results, eval_results]
+  qa_passed:
+    owner: senior_qa
+    evidence: [docs/qa/QA_REPORT.md, docs/qa/REQUIREMENTS_TRACEABILITY.md]
+  audit_passed:
+    owner: software_auditor
+    evidence: [docs/audits/PRODUCTION_AUDIT.md]
+  production_release:
+    owner: devops_engineer
+    signoff: software_auditor
+    evidence: [docs/RELEASE_READINESS.md, deployed_smoke, rollback_check]
+
+severity:
+  P0: release_blocking
+  P1: requires_owner_risk_acceptance
+  P2: should_fix_or_schedule
+  P3: improvement
+
+independence:
+  qa_cannot_be_approved_by: [backend_engineer, frontend_engineer, devops_engineer, applied_ai_engineer]
+  audit_cannot_be_approved_by: [implementation_owner]
+  architecture_cannot_be_approved_by: [senior_qa]

@@ -1,0 +1,4 @@
+version: 1
+variables: []
+deployment_targets: []
+secret_values_allowed: false

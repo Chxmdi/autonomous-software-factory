@@ -1,0 +1,22 @@
+name: validate-factory
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate contracts and secret safety
+        run: python scripts/validate_factory.py .
+      - name: Test clean and conflict-safe bootstrap
+        run: python -m unittest discover -s tests -v
