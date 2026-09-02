@@ -24,8 +24,8 @@ Then progressively add GitHub/code evidence, hybrid/reranked retrieval, graph re
 | Milestone | Owner | Exit evidence | Status |
 |---|---|---|---|
 | Context bootstrap | Digital Twin | `docs/PROJECT_CONTEXT.md`, authorization/environment metadata | complete |
-| Product Ready | Product Designer | `docs/PRODUCT.md`, `docs/UX_SPEC.md`, `docs/DESIGN_SYSTEM.md` | active |
-| Architecture Ready | Project Designer | `docs/ARCHITECTURE.md`, `docs/API_CONTRACTS.md`, `docs/DATA_MODEL.md`, `docs/SECURITY.md`, `docs/TEST_STRATEGY.md` | pending |
+| Product Ready | Product Designer | `docs/PRODUCT.md`, `docs/UX_SPEC.md`, `docs/DESIGN_SYSTEM.md` | complete |
+| Architecture Ready | Project Designer | `docs/ARCHITECTURE.md`, `docs/API_CONTRACTS.md`, `docs/DATA_MODEL.md`, `docs/SECURITY.md`, `docs/TEST_STRATEGY.md` | active |
 | AI Architecture Ready | Applied AI + Context Engineer | `docs/AI_SYSTEM.md`, `docs/CONTEXT_ARCHITECTURE.md`, `docs/PROMPT_REGISTRY.md`, eval plan | pending |
 | Implementation Ready | Project Designer | Stable contracts + work-package verification commands | pending |
 | Core Recruiter Slice | Full-stack + AI + Data | End-to-end grounded recruiter question with citations and trace | pending |
@@ -75,8 +75,8 @@ Parallel work is allowed only after shared data/API/AI contracts stabilize. Fron
 | ID | Outcome | Owner | Dependencies | Acceptance criteria | Verification | Status |
 |---|---|---|---|---|---|---|
 | WP-001 | Complete authoritative project context | Digital Twin | none | product identity, scope, authorization, non-goals, open decisions recorded | repository review | complete |
-| WP-010 | Define recruiter journeys and premium interaction/design system | Product Designer | WP-001 | UX covers 5-minute recruiter journey, evidence inspection, JD analysis, project/code exploration, mobile/accessibility | design artifact review + requirement mapping | active |
-| WP-020 | Define production architecture and system boundaries | Project Designer | WP-010 | component responsibilities, failure boundaries, deployment topology, contracts, data ownership, security model, tech tradeoffs documented | architecture review against requirements | pending |
+| WP-010 | Define recruiter journeys and premium interaction/design system | Product Designer | WP-001 | UX covers 5-minute recruiter journey, evidence inspection, JD analysis, project/code exploration, mobile/accessibility | design artifact review + requirement mapping | complete |
+| WP-020 | Define production architecture and system boundaries | Project Designer | WP-010 | component responsibilities, failure boundaries, deployment topology, contracts, data ownership, security model, tech tradeoffs documented | architecture review against requirements | active |
 | WP-021 | Define AI/context architecture | Applied AI + Context Engineer | WP-020 | AI/deterministic boundaries, corpus/chunking/retrieval/rerank/graph/tool/agent/eval/prompt architecture versioned | design review + eval plan | pending |
 | WP-030 | Implement Career Truth Layer and provenance schema | Database Specialist + Backend | WP-020 | claims/evidence/sources/entities/visibility/status/conflicts/freshness modeled with migrations/tests | migration + unit/integration tests | pending |
 | WP-031 | Build recruiter-facing application shell and navigation | Frontend Engineer | WP-010, WP-020 | landing, ask, evidence drawer, project explorer, job-fit entry, inspector/lab routes responsive and accessible | component/e2e accessibility checks | pending |
@@ -122,7 +122,7 @@ See `protocols/RELEASE_GATES.md` and `factory.yaml`. No role may self-approve a 
 
 ## Immediate next actions
 
-1. Product Designer completes `docs/UX_SPEC.md` and `docs/DESIGN_SYSTEM.md` using `docs/PRODUCT.md` as canonical product truth.
-2. Project Designer defines architecture/contracts/data/security/test strategy after Product Ready artifacts stabilize.
-3. Applied AI and Context/Prompt Engineers then define the AI system, prompt/context registry, retrieval architecture, MCP boundaries, agent contracts, and eval thresholds before implementation fan-out.
-4. Begin WP-030/031/032 in parallel only after interfaces are stable.
+1. Project Designer completes `docs/ARCHITECTURE.md`, `docs/API_CONTRACTS.md`, `docs/DATA_MODEL.md`, `docs/SECURITY.md`, and `docs/TEST_STRATEGY.md`.
+2. Applied AI and Context/Prompt Engineers define `docs/AI_SYSTEM.md`, `docs/CONTEXT_ARCHITECTURE.md`, `docs/PROMPT_REGISTRY.md`, versioned prompt/agent contracts, retrieval/eval thresholds, and MCP boundaries after shared architecture stabilizes.
+3. Database, backend, and frontend implementation may start in parallel only after the shared data/API interfaces are approved.
+4. First implementation target remains the grounded recruiter slice: recruiter question -> real evidence -> verified answer -> citation -> AI Inspector trace.
