@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sys
 from dataclasses import asdict, dataclass
@@ -64,7 +65,17 @@ def source_files(factory_root: Path) -> list[Path]:
 def rendered_bytes(source: Path, relative: Path, product_name: str) -> bytes:
     content = source.read_bytes()
     if relative.as_posix() == "docs/PROJECT_CONTEXT.md":
-        text = content.decode("utf-8").replace("- Product name: `TODO`", f"- Product name: `{product_name}`")
+        text = content.decode("utf-8")
+        # The factory may itself be bound to a product. Rebinding must therefore
+        # replace the complete product-name field, not only the pristine TODO token.
+        text, replacements = re.subn(
+            r"(?m)^- Product name:\s*.*$",
+            f"- Product name: `{product_name}`",
+            text,
+            count=1,
+        )
+        if replacements != 1:
+            raise ValueError("docs/PROJECT_CONTEXT.md is missing the required Product name field")
         return text.encode("utf-8")
     return content
 
