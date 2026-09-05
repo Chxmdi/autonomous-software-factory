@@ -8,7 +8,7 @@ on:
       - 'supabase/migrations/**'
       - '.github/workflows/ojoro-web.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -27,6 +27,16 @@ jobs:
         run: npm install --global npm@12.0.2
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Commit dependency lock if missing
+        working-directory: .
+        run: |
+          if ! git ls-files --error-unmatch apps/ojoro-web/package-lock.json >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add apps/ojoro-web/package-lock.json
+            git commit -m "chore(deps): lock Ojoro dependency graph"
+            git push origin HEAD:product/ojoro-platform
+          fi
       - name: Lint
         run: npm run lint
       - name: Typecheck
