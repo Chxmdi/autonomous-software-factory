@@ -1,22 +1,7 @@
-# AI System
+# AI System — Not Applicable
 
-## Product value and deterministic boundary
-`TODO`
+Ojoro is explicitly **not an AI application** for this release.
 
-## Agent/model topology
-`TODO`
+There are no LLMs, agents, prompts, embeddings, RAG pipelines, model providers or probabilistic decision paths. Discovery, matching, score, reliability, waitlist behavior and ranking are deterministic and documented.
 
-## Inputs, structured outputs, tools, and side effects
-`TODO`
-
-## Prompts, versions, and orchestration
-`TODO`
-
-## Grounding/RAG and memory
-`TODO`
-
-## Safety, failure, and observability
-`TODO`
-
-## Eval matrix and cost/latency assumptions
-`TODO`
+If a future product decision introduces model-based behavior, it requires a new ADR, product acceptance criteria, privacy/security review, eval strategy and the factory Applied AI + Context/Prompt roles. It must not silently alter deterministic permissions, scoring, safety or financial controls.

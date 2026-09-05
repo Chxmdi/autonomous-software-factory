@@ -1,44 +1,33 @@
-# Delivery Status
+# Ojoro Delivery Status
 
-## Current phase
+Updated: 2026-09-05
 
-Context bootstrap
+## Baseline
+
+- Factory repository was an unbound template on `main`.
+- Product branch: `product/ojoro-platform`.
+- Canonical source is the Ojoro master feature specification supplied by the product owner.
+- Existing Supabase project discovered: `Ojoro Command Centre` (`ca-central-1`), initially inactive; restore requested before inspection.
+- No AI role is applicable by explicit product-owner instruction.
 
 ## Gates
 
-| Gate | Status | Evidence |
+| Gate | State | Evidence / blocker |
 |---|---|---|
-| Product Ready | not started | |
-| Architecture Ready | not started | |
-| Implementation Ready | not started | |
-| Feature Complete | not started | |
-| Verification Ready | not started | |
-| QA Passed | not started | |
-| Audit Passed | not started | |
-| Production Release | not started | |
+| Product Ready | PASS | PRODUCT, UX_SPEC, DESIGN_SYSTEM, requirements |
+| Architecture Ready | PASS | ARCHITECTURE, API_CONTRACTS, DATA_MODEL, SECURITY, TEST_STRATEGY |
+| Implementation Ready | PASS | active execution plan |
+| Feature Complete | IN PROGRESS | application + migrations being implemented |
+| Verification Ready | PENDING | CI/database evidence required |
+| QA Passed | PENDING | independent QA after verification |
+| Audit Passed | PENDING | independent audit after QA |
+| Production Release | PENDING | deployment + smoke + rollback evidence |
 
-## Active workstreams
+## P0/P1 findings
 
-- Context bootstrap
+None identified at architecture stage.
 
-## Blockers
+## Exact external blockers
 
-- Product context incomplete.
-
-## Open findings
-
-- P0: none
-- P1: none
-
-## Test status
-
-Not run.
-
-## Deployment status
-
-Not deployed.
-
-## Next actions
-
-1. Complete `docs/PROJECT_CONTEXT.md`.
-2. Establish Product Ready artifacts.
+- Existing Supabase database must finish restoring before schema inspection/migration.
+- Production web deployment target/credentials must be verified before release promotion.
