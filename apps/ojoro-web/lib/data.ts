@@ -52,12 +52,12 @@ export async function homeSnapshot(supabase: SupabaseClient, userId: string, cit
     supabase.from("oj_posts").select("id,author_id,kind,body,created_at,clan_id,activity_id").order("created_at",{ascending:false}).limit(12),
     city ? supabase.from("oj_statuses").select("id,profile_id,sport_slug,message,expires_at").eq("city",city).gt("expires_at",now).order("created_at",{ascending:false}).limit(6) : Promise.resolve({data:[] as any[]}) as any
   ]);
-  const authorIds = [...new Set([...(feed ?? []).map(p=>p.author_id),...(statuses ?? []).map(s=>s.profile_id)])]; let authors: any[]=[];
+  const authorIds = [...new Set([...(feed ?? []).map(p=>p.author_id),...(statuses ?? []).map((s:any)=>s.profile_id)])]; let authors: any[]=[];
   if (authorIds.length) { const { data } = await supabase.from("oj_profiles").select("id,username,full_name,avatar_url").in("id",authorIds); authors=data??[]; }
   const authorMap = new Map(authors.map(a=>[a.id,a]));
   return {
     upcoming: await hydrateActivities(supabase,upcomingRows,userId), suggestions: await hydrateActivities(supabase,suggestedRows,userId), clans: await hydrateClans(supabase,clanRows), goals: goals ?? [],
-    feed: (feed ?? []).map(p=>({...p,author:authorMap.get(p.author_id)??null})), statuses:(statuses ?? []).map(s=>({...s,profile:authorMap.get(s.profile_id)??null}))
+    feed: (feed ?? []).map(p=>({...p,author:authorMap.get(p.author_id)??null})), statuses:(statuses ?? []).map((s:any)=>({...s,profile:authorMap.get(s.profile_id)??null}))
   };
 }
 
