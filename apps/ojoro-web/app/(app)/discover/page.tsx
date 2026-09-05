@@ -1,0 +1,20 @@
+import Link from "next/link";
+import { Clock3, Filter, Map, Search, Users } from "lucide-react";
+import { AppHeader } from "@/components/app-header";
+import { ActivityCard } from "@/components/activity-card";
+import { ClanCard } from "@/components/clan-card";
+import { EmptyState } from "@/components/empty-state";
+import { requireViewer } from "@/lib/auth";
+import { discoverSnapshot, unreadNotificationCount } from "@/lib/data";
+
+export default async function DiscoverPage({ searchParams }: { searchParams: Promise<Record<string,string|string[]|undefined>> }) {
+  const {supabase,user,profile}=await requireViewer(); const q=await searchParams;
+  const city=typeof q.city==="string"?q.city:(profile.city??""); const sport=typeof q.sport==="string"?q.sport:""; const mode=typeof q.mode==="string"?q.mode:""; const rightNow=q.now==="1"; const urgent=q.urgent==="1"; const tab=q.tab==="clans"?"clans":"activities";
+  const [snapshot,unread,{data:sports}]=await Promise.all([discoverSnapshot(supabase,user.id,{city,sport,mode,rightNow,urgent}),unreadNotificationCount(supabase,user.id),supabase.from("oj_sports").select("slug,name").eq("active",true).order("name")]);
+  return <div className="page-wrap"><AppHeader title="Discover" eyebrow="What can I do?" unread={unread} actions={<Link className="button button-dark desktop-action" href="/create?type=activity">Create activity</Link>}/>
+    <section className="discover-intro"><div><h2>Find something worth <em>leaving the house for.</em></h2><p>Sorted for joinability and time—not popularity.</p></div><div className="discover-fast-actions"><Link href={`/discover?city=${encodeURIComponent(city)}&now=1`} className={`fast-action ${rightNow?"active":""}`}><Clock3/>Right now</Link><Link href={`/discover?city=${encodeURIComponent(city)}&urgent=1`} className={`fast-action ${urgent?"active":""}`}><Users/>Needs players</Link></div></section>
+    <form className="filter-bar" action="/discover"><div className="search-field"><Search size={17}/><input name="city" aria-label="City" defaultValue={city} placeholder="City"/></div><select name="sport" defaultValue={sport} aria-label="Sport"><option value="">All activities</option>{sports?.map(s=><option value={s.slug} key={s.slug}>{s.name}</option>)}</select><select name="mode" defaultValue={mode} aria-label="Mode"><option value="">Any vibe</option><option value="social">Social</option><option value="fitness">Fitness</option><option value="learning">Learning</option><option value="competitive">Competitive</option></select>{rightNow&&<input type="hidden" name="now" value="1"/>}{urgent&&<input type="hidden" name="urgent" value="1"/>}<button className="button button-dark" type="submit"><Filter size={16}/>Apply</button></form>
+    <div className="tab-switch" role="navigation" aria-label="Discover categories"><Link className={tab==="activities"?"active":""} href={`/discover?city=${encodeURIComponent(city)}${sport?`&sport=${sport}`:""}`}>Activities <span>{snapshot.activities.length}</span></Link><Link className={tab==="clans"?"active":""} href={`/discover?tab=clans&city=${encodeURIComponent(city)}`}>Clans <span>{snapshot.clans.length}</span></Link><button type="button" disabled title="Map view is ready for coordinate-backed activities"><Map size={16}/> Map</button></div>
+    {tab==="activities" ? <section className="content-section no-top">{snapshot.activities.length?<div className="activity-grid">{snapshot.activities.map(a=><ActivityCard key={a.id} activity={a}/>)}</div>:<EmptyState title="Nothing matches those filters" body="Broaden the time, mode or sport—or create exactly what you wish existed." href="/create?type=activity" action="Create the activity"/>}</section> : <section className="content-section no-top">{snapshot.clans.length?<div className="clan-grid">{snapshot.clans.map(c=><ClanCard key={c.id} clan={c}/>)}</div>:<EmptyState title="No clans found here yet" body="Start the community you wish your city already had. Multi-sport is encouraged." href="/create?type=clan" action="Create a clan"/>}</section>}
+  </div>;
+}

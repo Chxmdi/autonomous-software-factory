@@ -1,0 +1,48 @@
+name: Ojoro Web Verification
+
+on:
+  push:
+    branches: [product/ojoro-platform]
+    paths:
+      - 'apps/ojoro-web/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/ojoro-web.yml'
+  pull_request:
+    paths:
+      - 'apps/ojoro-web/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/ojoro-web.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ojoro-web
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Use supported npm
+        run: npm install --global npm@12.0.2
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run test:e2e -- --project=chromium
