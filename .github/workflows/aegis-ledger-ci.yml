@@ -40,3 +40,23 @@ jobs:
 
       - name: Verify framework-free domain smoke
         run: ./scripts/verify-domain.sh
+
+  cdc-smoke:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: products/aegis-ledger
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify PostgreSQL → Debezium → Kafka → projection
+        env:
+          AEGIS_CDC_CLEANUP: "true"
+        run: bash ./scripts/verify-cdc.sh
+
+      - name: Capture eventing logs on failure
+        if: failure()
+        run: docker compose --profile eventing logs --no-color --tail=300 || true
