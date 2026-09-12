@@ -1,5 +1,7 @@
 package dev.aegisledger.app.persistence;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.aegisledger.application.CurrencyMismatchException;
 import dev.aegisledger.application.IdempotencyConflictException;
 import dev.aegisledger.application.IdempotencyInProgressException;
@@ -8,6 +10,7 @@ import dev.aegisledger.application.PostTransactionCommand;
 import dev.aegisledger.application.PostTransactionResult;
 import dev.aegisledger.application.ResourceNotFoundException;
 import dev.aegisledger.application.TransactionQueryPort;
+import dev.aegisledger.app.messaging.LedgerTransactionPostedEvent;
 import dev.aegisledger.domain.AccountId;
 import dev.aegisledger.domain.AccountSnapshot;
 import dev.aegisledger.domain.AccountStatus;
@@ -28,6 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,13 +42,19 @@ import java.util.UUID;
 @Repository
 public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQueryPort {
     private static final String OPERATION = "POST_TRANSACTION";
+    private static final String POSTED_TOPIC = "aegis.ledger.posted";
 
     private final NamedParameterJdbcTemplate jdbc;
     private final TransactionTemplate transactions;
+    private final ObjectMapper objectMapper;
 
-    public JdbcLedgerRepository(NamedParameterJdbcTemplate jdbc, PlatformTransactionManager transactionManager) {
+    public JdbcLedgerRepository(
+            NamedParameterJdbcTemplate jdbc,
+            PlatformTransactionManager transactionManager,
+            ObjectMapper objectMapper) {
         this.jdbc = jdbc;
         this.transactions = new TransactionTemplate(transactionManager);
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -90,7 +100,7 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
         insertTransaction(command, transactionId, postedAt);
         insertLines(command, transactionId);
         updateBalances(accounts, resultingBalances);
-        insertOutbox(command, transactionId, postedAt);
+        insertOutbox(command, transactionId, postedAt, resultingBalances);
         completeIdempotency(command, transactionId, postedAt);
 
         return new PostTransactionResult(
@@ -257,11 +267,45 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
         }
     }
 
-    private void insertOutbox(PostTransactionCommand command, UUID transactionId, Instant postedAt) {
-        String payload = "{\"transactionId\":\"%s\",\"tenantId\":\"%s\",\"ledgerId\":\"%s\",\"postedAt\":\"%s\"}"
-                .formatted(transactionId, command.tenantId(), command.ledgerId(), postedAt);
+    private void insertOutbox(
+            PostTransactionCommand command,
+            UUID transactionId,
+            Instant postedAt,
+            Map<AccountId, Long> resultingBalances) {
+        UUID eventId = UUID.randomUUID();
+        List<LedgerTransactionPostedEvent.Line> eventLines = new ArrayList<>();
+        int sequence = 1;
+        for (JournalLineDraft line : command.lines()) {
+            eventLines.add(new LedgerTransactionPostedEvent.Line(
+                    line.accountId().value(),
+                    sequence++,
+                    line.direction().name(),
+                    line.amountMinor(),
+                    resultingBalances.get(line.accountId())));
+        }
+
+        LedgerTransactionPostedEvent event = new LedgerTransactionPostedEvent(
+                eventId,
+                LedgerTransactionPostedEvent.TYPE,
+                LedgerTransactionPostedEvent.VERSION,
+                command.tenantId().value(),
+                transactionId,
+                command.ledgerId().value(),
+                command.currency().value(),
+                command.reference(),
+                command.correlationId(),
+                postedAt,
+                eventLines);
+
+        final String payload;
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Could not serialize posted ledger event", e);
+        }
+
         var params = new MapSqlParameterSource()
-                .addValue("id", UUID.randomUUID())
+                .addValue("id", eventId)
                 .addValue("tenantId", command.tenantId().value())
                 .addValue("aggregateId", transactionId)
                 .addValue("key", transactionId.toString())
@@ -273,8 +317,8 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
                    topic, event_key, correlation_id, payload)
                 VALUES
                   (:id, :tenantId, 'JOURNAL_TRANSACTION', :aggregateId, 'ledger.transaction.posted', 1,
-                   'aegis.ledger.posted', :key, :correlationId, CAST(:payload AS jsonb))
-                """, params);
+                   :topic, :key, :correlationId, CAST(:payload AS jsonb))
+                """, params.addValue("topic", POSTED_TOPIC));
     }
 
     private void completeIdempotency(PostTransactionCommand command, UUID transactionId, Instant completedAt) {
