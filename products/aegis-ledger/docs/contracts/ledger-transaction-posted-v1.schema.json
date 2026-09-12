@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aegisledger.dev/schemas/ledger-transaction-posted-v1.schema.json",
+  "title": "ledger.transaction.posted v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "eventType",
+    "eventVersion",
+    "tenantId",
+    "transactionId",
+    "ledgerId",
+    "currency",
+    "reference",
+    "correlationId",
+    "occurredAt",
+    "lines"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "ledger.transaction.posted" },
+    "eventVersion": { "const": 1 },
+    "tenantId": { "type": "string", "format": "uuid" },
+    "transactionId": { "type": "string", "format": "uuid" },
+    "ledgerId": { "type": "string", "format": "uuid" },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "reference": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "correlationId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "lines": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["accountId", "lineSequence", "direction", "amountMinor", "balanceAfterMinor"],
+        "properties": {
+          "accountId": { "type": "string", "format": "uuid" },
+          "lineSequence": { "type": "integer", "minimum": 1 },
+          "direction": { "enum": ["DEBIT", "CREDIT"] },
+          "amountMinor": { "type": "integer", "minimum": 1 },
+          "balanceAfterMinor": { "type": "integer" }
+        }
+      }
+    }
+  }
+}
