@@ -1,0 +1,22 @@
+{
+  "name": "aegis-outbox",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "${file:/run/secrets/debezium.properties:username}",
+    "database.password": "${file:/run/secrets/debezium.properties:password}",
+    "database.dbname": "aegis",
+    "topic.prefix": "aegis-cdc",
+    "table.include.list": "public.outbox_events",
+    "plugin.name": "pgoutput",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "event_key",
+    "transforms.outbox.table.field.event.type": "event_type",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.route.by.field": "topic",
+    "transforms.outbox.route.topic.replacement": "${routedByValue}"
+  }
+}

@@ -1,0 +1,29 @@
+openapi: 3.1.0
+info:
+  title: AegisLedger API
+  version: 0.1.0
+paths:
+  /v1/transactions:
+    post:
+      summary: Atomically post a balanced journal transaction
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 128 }
+      responses:
+        '201': { description: Posted }
+        '200': { description: Idempotent replay of already-posted resource }
+        '409': { description: Idempotency key reused with different payload }
+        '422': { description: Financial invariant rejection }
+  /v1/transactions/{transactionId}:
+    get:
+      summary: Read immutable transaction
+      parameters:
+        - in: path
+          name: transactionId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Transaction }
+        '404': { description: Not found in tenant }

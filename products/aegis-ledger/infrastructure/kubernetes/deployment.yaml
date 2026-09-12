@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aegis-ledger
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: aegis-ledger
+  template:
+    metadata:
+      labels:
+        app: aegis-ledger
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: app
+          image: aegis-ledger:0.1.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: DB_URL
+              valueFrom: { secretKeyRef: { name: aegis-ledger-runtime, key: db-url } }
+            - name: DB_USERNAME
+              valueFrom: { secretKeyRef: { name: aegis-ledger-runtime, key: db-username } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: aegis-ledger-runtime, key: db-password } }
+            - name: OAUTH_ISSUER_URI
+              valueFrom: { secretKeyRef: { name: aegis-ledger-runtime, key: oauth-issuer-uri } }
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests: { cpu: "500m", memory: "512Mi" }
+            limits: { cpu: "2", memory: "1Gi" }
