@@ -26,7 +26,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
-import java.util.Comparator;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -117,7 +118,7 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
                 .addValue("operation", OPERATION)
                 .addValue("key", command.idempotencyKey())
                 .addValue("hash", command.requestHash())
-                .addValue("expiresAt", Instant.now().plusSeconds(72L * 60L * 60L));
+                .addValue("expiresAt", toSqlTime(Instant.now().plusSeconds(72L * 60L * 60L)));
         int inserted = jdbc.update("""
                 INSERT INTO idempotency_records
                   (id, tenant_id, operation_type, idempotency_key, request_hash, status, expires_at)
@@ -207,8 +208,8 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
                 .addValue("reference", command.reference())
                 .addValue("currency", command.currency().value())
                 .addValue("correlationId", command.correlationId())
-                .addValue("effectiveAt", command.effectiveAt())
-                .addValue("postedAt", postedAt);
+                .addValue("effectiveAt", toSqlTime(command.effectiveAt()))
+                .addValue("postedAt", toSqlTime(postedAt));
         jdbc.update("""
                 INSERT INTO journal_transactions
                   (id, tenant_id, ledger_id, transaction_type, reference, currency, status,
@@ -282,7 +283,7 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
                 .addValue("operation", OPERATION)
                 .addValue("key", command.idempotencyKey())
                 .addValue("resourceId", transactionId)
-                .addValue("completedAt", completedAt);
+                .addValue("completedAt", toSqlTime(completedAt));
         int updated = jdbc.update("""
                 UPDATE idempotency_records
                 SET status = 'COMPLETED', resource_id = :resourceId, completed_at = :completedAt
@@ -317,6 +318,10 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
                 rs.getLong("amount_minor")));
         return new PostTransactionResult(
                 tx.id(), tx.status(), tx.reference(), tx.currency(), tx.effectiveAt(), tx.postedAt(), lines, replayed);
+    }
+
+    private static OffsetDateTime toSqlTime(Instant instant) {
+        return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
     private record IdempotencyClaim(boolean owner, String requestHash, String status, UUID resourceId) {}
