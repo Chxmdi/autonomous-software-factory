@@ -40,6 +40,23 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
+  app:
+    build: .
+    profiles: ["eventing"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    ports: ["8080:8080"]
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://postgres:5432/aegis
+      DB_USERNAME: aegis
+      DB_PASSWORD: aegis-local-only
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      AEGIS_PROJECTIONS_KAFKA_ENABLED: "true"
+
   connect:
     image: quay.io/debezium/connect:3.6.2.Final
     profiles: ["eventing"]
