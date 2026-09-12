@@ -36,7 +36,16 @@ jobs:
           cache-dependency-path: products/aegis-ledger/pom.xml
 
       - name: Verify Maven reactor
-        run: mvn -B --no-transfer-progress verify
+        shell: bash
+        run: |
+          set +e
+          mvn -q -B --no-transfer-progress verify
+          status=$?
+          if [[ $status -ne 0 ]]; then
+            echo '--- Maven/Surefire failure evidence ---'
+            find . -path '*/target/surefire-reports/*.txt' -type f -print -exec tail -n 120 {} \; || true
+            exit $status
+          fi
 
       - name: Verify framework-free domain smoke
         run: ./scripts/verify-domain.sh
