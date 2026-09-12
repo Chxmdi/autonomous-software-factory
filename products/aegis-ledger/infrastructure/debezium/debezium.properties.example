@@ -1,0 +1,3 @@
+# Local development only. Copy to debezium.properties; the real file is gitignored.
+username=aegis_cdc
+password=aegis-cdc-local-only
