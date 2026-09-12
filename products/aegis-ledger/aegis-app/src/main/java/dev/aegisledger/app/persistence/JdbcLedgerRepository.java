@@ -1,7 +1,6 @@
 package dev.aegisledger.app.persistence;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import dev.aegisledger.application.CurrencyMismatchException;
 import dev.aegisledger.application.IdempotencyConflictException;
 import dev.aegisledger.application.IdempotencyInProgressException;
@@ -300,7 +299,7 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
         final String payload;
         try {
             payload = objectMapper.writeValueAsString(event);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Could not serialize posted ledger event", e);
         }
 
@@ -310,7 +309,8 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
                 .addValue("aggregateId", transactionId)
                 .addValue("key", transactionId.toString())
                 .addValue("correlationId", command.correlationId())
-                .addValue("payload", payload);
+                .addValue("payload", payload)
+                .addValue("topic", POSTED_TOPIC);
         jdbc.update("""
                 INSERT INTO outbox_events
                   (id, tenant_id, aggregate_type, aggregate_id, event_type, event_version,
@@ -318,7 +318,7 @@ public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQuery
                 VALUES
                   (:id, :tenantId, 'JOURNAL_TRANSACTION', :aggregateId, 'ledger.transaction.posted', 1,
                    :topic, :key, :correlationId, CAST(:payload AS jsonb))
-                """, params.addValue("topic", POSTED_TOPIC));
+                """, params);
     }
 
     private void completeIdempotency(PostTransactionCommand command, UUID transactionId, Instant completedAt) {
