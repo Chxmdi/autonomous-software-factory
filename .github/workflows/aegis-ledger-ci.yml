@@ -1,0 +1,42 @@
+name: AegisLedger CI
+
+on:
+  push:
+    branches:
+      - product/aegis-ledger
+    paths:
+      - '.github/workflows/aegis-ledger-ci.yml'
+      - 'products/aegis-ledger/**'
+  pull_request:
+    paths:
+      - '.github/workflows/aegis-ledger-ci.yml'
+      - 'products/aegis-ledger/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: products/aegis-ledger
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: products/aegis-ledger/pom.xml
+
+      - name: Verify Maven reactor
+        run: mvn -B --no-transfer-progress verify
+
+      - name: Verify framework-free domain smoke
+        run: ./scripts/verify-domain.sh
