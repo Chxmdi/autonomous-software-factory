@@ -1,7 +1,6 @@
 package dev.aegisledger.app.messaging;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -26,7 +25,7 @@ public class LedgerProjectionConsumer {
         try {
             LedgerTransactionPostedEvent event = objectMapper.readValue(payload, LedgerTransactionPostedEvent.class);
             projectionRepository.apply(event);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new IllegalArgumentException("Invalid ledger.transaction.posted event payload", e);
         }
     }
