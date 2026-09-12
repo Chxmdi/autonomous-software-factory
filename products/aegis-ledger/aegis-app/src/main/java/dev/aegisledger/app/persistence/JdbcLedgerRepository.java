@@ -26,7 +26,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -36,7 +35,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Repository
-public final class JdbcLedgerRepository implements LedgerPostingPort, TransactionQueryPort {
+public class JdbcLedgerRepository implements LedgerPostingPort, TransactionQueryPort {
     private static final String OPERATION = "POST_TRANSACTION";
 
     private final NamedParameterJdbcTemplate jdbc;
