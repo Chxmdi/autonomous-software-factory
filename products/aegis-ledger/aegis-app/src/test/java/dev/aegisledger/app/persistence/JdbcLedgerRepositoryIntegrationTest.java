@@ -43,7 +43,7 @@ class JdbcLedgerRepositoryIntegrationTest {
     @Container
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-alpine")
             .withDatabaseName("aegis")
-            .withUsername("aegis")
+            .withUsername("postgres")
             .withPassword("admin-test")
             .withInitScript("db/test-init.sql");
 
