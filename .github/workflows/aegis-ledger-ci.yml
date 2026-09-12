@@ -39,13 +39,16 @@ jobs:
         shell: bash
         run: |
           set +e
-          mvn -q -B --no-transfer-progress verify
+          mvn -B --no-transfer-progress verify > /tmp/aegis-maven.log 2>&1
           status=$?
           if [[ $status -ne 0 ]]; then
-            echo '--- Maven/Surefire failure evidence ---'
-            find . -path '*/target/surefire-reports/*.txt' -type f -print -exec tail -n 120 {} \; || true
+            echo '--- Maven failure tail ---'
+            tail -n 220 /tmp/aegis-maven.log || true
+            echo '--- Surefire failure evidence ---'
+            find . -path '*/target/surefire-reports/*.txt' -type f -print -exec tail -n 100 {} \; || true
             exit $status
           fi
+          tail -n 40 /tmp/aegis-maven.log
 
       - name: Verify framework-free domain smoke
         run: ./scripts/verify-domain.sh
