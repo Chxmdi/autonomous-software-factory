@@ -6,3 +6,4 @@ target/
 .env.*
 !.env.example
 .DS_Store
+infrastructure/debezium/debezium.properties
