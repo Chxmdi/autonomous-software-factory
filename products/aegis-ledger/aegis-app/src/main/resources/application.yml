@@ -12,6 +12,25 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      ack-mode: record
+
+aegis:
+  projections:
+    kafka-enabled: ${AEGIS_PROJECTIONS_KAFKA_ENABLED:false}
+    topic: ${AEGIS_LEDGER_POSTED_TOPIC:aegis.ledger.posted}
+    group-id: ${AEGIS_ACCOUNT_ACTIVITY_GROUP:aegis-account-activity-v1}
+
 server:
   shutdown: graceful
   error:
