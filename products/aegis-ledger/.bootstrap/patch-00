@@ -1,0 +1,391 @@
+diff --git a/products/aegis-ledger/.editorconfig b/products/aegis-ledger/.editorconfig
+new file mode 100644
+index 0000000..42d60e6
+--- /dev/null
++++ b/products/aegis-ledger/.editorconfig
+@@ -0,0 +1,15 @@
++root = true
++
++[*]
++charset = utf-8
++end_of_line = lf
++insert_final_newline = true
++trim_trailing_whitespace = true
++
++[*.java]
++indent_style = space
++indent_size = 4
++
++[*.{yml,yaml,json,md}]
++indent_style = space
++indent_size = 2
+diff --git a/products/aegis-ledger/.env.example b/products/aegis-ledger/.env.example
+new file mode 100644
+index 0000000..c2ee4c7
+--- /dev/null
++++ b/products/aegis-ledger/.env.example
+@@ -0,0 +1,5 @@
++# Local only; never commit real credentials.
++SPRING_PROFILES_ACTIVE=local
++DB_URL=jdbc:postgresql://localhost:5432/aegis
++DB_USERNAME=aegis
++DB_PASSWORD=aegis-local-only
+diff --git a/products/aegis-ledger/.github/workflows/ci.yml b/products/aegis-ledger/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..1e552ec
+--- /dev/null
++++ b/products/aegis-ledger/.github/workflows/ci.yml
+@@ -0,0 +1,24 @@
++name: AegisLedger CI
++on:
++  push:
++    paths:
++      - 'products/aegis-ledger/**'
++  pull_request:
++    paths:
++      - 'products/aegis-ledger/**'
++
++jobs:
++  verify:
++    runs-on: ubuntu-latest
++    defaults:
++      run:
++        working-directory: products/aegis-ledger
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-java@v4
++        with:
++          distribution: temurin
++          java-version: '21'
++          cache: maven
++      - name: Verify
++        run: mvn -B verify
+diff --git a/products/aegis-ledger/.gitignore b/products/aegis-ledger/.gitignore
+new file mode 100644
+index 0000000..08bda94
+--- /dev/null
++++ b/products/aegis-ledger/.gitignore
+@@ -0,0 +1,8 @@
++target/
++.idea/
++.vscode/
++*.iml
++.env
++.env.*
++!.env.example
++.DS_Store
+diff --git a/products/aegis-ledger/AGENTS.md b/products/aegis-ledger/AGENTS.md
+new file mode 100644
+index 0000000..5106c2f
+--- /dev/null
++++ b/products/aegis-ledger/AGENTS.md
+@@ -0,0 +1,22 @@
++# AegisLedger Scoped Factory Instructions
++
++The repository-level `AGENTS.md`, `BUILD_PRODUCT.md`, `GLOBAL_ENGINEERING_CONTRACT.md`, `factory.yaml`, and role definitions remain authoritative. This file scopes those rules to AegisLedger without overwriting the existing Ojoro product state.
++
++## Product scope
++- Product root: `products/aegis-ledger/`
++- Canonical product context: `products/aegis-ledger/docs/PROJECT_CONTEXT.md`
++- Canonical PRD: `products/aegis-ledger/docs/requirements/AEGIS_LEDGER_PRD.md`
++- Active execution plan: `products/aegis-ledger/docs/exec-plans/ACTIVE.md`
++- Delivery status: `products/aegis-ledger/docs/STATUS.md`
++
++## Rules
++- Treat paths in the root factory gate definitions as relative to this product root while working on AegisLedger.
++- Do not modify Ojoro files to satisfy AegisLedger gates.
++- Preserve financial invariants above performance shortcuts.
++- Money never uses binary floating point.
++- Posted journal entries are immutable; corrections use new reversing entries.
++- Tenant identity is derived from trusted server context in production.
++- Mutation endpoints require durable database-backed idempotency.
++- Kafka, Redis, and OpenSearch are not financial sources of truth.
++- Never claim exactly-once transport semantics. AegisLedger provides business-level exactly-once effects through idempotency, uniqueness, transactions, deduplicated consumers, and reconciliation.
++- Any externally ambiguous settlement outcome enters an explicit UNKNOWN/reconciliation state; never blindly retry a possible money movement.
+diff --git a/products/aegis-ledger/Dockerfile b/products/aegis-ledger/Dockerfile
+new file mode 100644
+index 0000000..c67f594
+--- /dev/null
++++ b/products/aegis-ledger/Dockerfile
+@@ -0,0 +1,15 @@
++FROM maven:3.9-eclipse-temurin-21 AS build
++WORKDIR /workspace
++COPY pom.xml .
++COPY aegis-domain aegis-domain
++COPY aegis-application aegis-application
++COPY aegis-app aegis-app
++RUN mvn -B -pl aegis-app -am package -DskipTests
++
++FROM eclipse-temurin:21-jre
++RUN useradd --system --uid 10001 aegis
++WORKDIR /app
++COPY --from=build /workspace/aegis-app/target/aegis-app-*.jar /app/aegis-ledger.jar
++USER 10001
++EXPOSE 8080
++ENTRYPOINT ["java","-XX:MaxRAMPercentage=75","-jar","/app/aegis-ledger.jar"]
+diff --git a/products/aegis-ledger/Makefile b/products/aegis-ledger/Makefile
+new file mode 100644
+index 0000000..7897020
+--- /dev/null
++++ b/products/aegis-ledger/Makefile
+@@ -0,0 +1,19 @@
++.PHONY: up down seed run verify domain-smoke
++
++up:
++	docker compose up -d postgres
++
++down:
++	docker compose down
++
++seed:
++	PGPASSWORD=aegis-local-only psql -h localhost -U aegis -d aegis -f scripts/seed-demo.sql
++
++run:
++	SPRING_PROFILES_ACTIVE=local mvn -pl aegis-app -am spring-boot:run
++
++verify:
++	mvn -B verify
++
++domain-smoke:
++	./scripts/verify-domain.sh
+diff --git a/products/aegis-ledger/aegis-app/pom.xml b/products/aegis-ledger/aegis-app/pom.xml
+new file mode 100644
+index 0000000..9deb7bf
+--- /dev/null
++++ b/products/aegis-ledger/aegis-app/pom.xml
+@@ -0,0 +1,31 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
++  <modelVersion>4.0.0</modelVersion>
++  <parent>
++    <groupId>dev.aegisledger</groupId><artifactId>aegis-ledger-parent</artifactId><version>0.1.0-SNAPSHOT</version>
++  </parent>
++  <artifactId>aegis-app</artifactId>
++  <dependencies>
++    <dependency><groupId>dev.aegisledger</groupId><artifactId>aegis-application</artifactId><version>${project.version}</version></dependency>
++    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
++    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
++    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-validation</artifactId></dependency>
++    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-oauth2-resource-server</artifactId></dependency>
++    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>
++    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
++    <dependency><groupId>org.springframework.kafka</groupId><artifactId>spring-kafka</artifactId></dependency>
++    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
++    <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>runtime</scope></dependency>
++    <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId></dependency>
++
++    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
++    <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>
++    <dependency><groupId>org.testcontainers</groupId><artifactId>postgresql</artifactId><scope>test</scope></dependency>
++    <dependency><groupId>org.testcontainers</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
++  </dependencies>
++  <build>
++    <plugins>
++      <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin>
++    </plugins>
++  </build>
++</project>
+diff --git a/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/AegisLedgerApplication.java b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/AegisLedgerApplication.java
+new file mode 100644
+index 0000000..e951cd6
+--- /dev/null
++++ b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/AegisLedgerApplication.java
+@@ -0,0 +1,11 @@
++package dev.aegisledger.app;
++
++import org.springframework.boot.SpringApplication;
++import org.springframework.boot.autoconfigure.SpringBootApplication;
++
++@SpringBootApplication
++public class AegisLedgerApplication {
++    public static void main(String[] args) {
++        SpringApplication.run(AegisLedgerApplication.class, args);
++    }
++}
+diff --git a/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/ApiExceptionHandler.java b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/ApiExceptionHandler.java
+new file mode 100644
+index 0000000..9ce58aa
+--- /dev/null
++++ b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/ApiExceptionHandler.java
+@@ -0,0 +1,82 @@
++package dev.aegisledger.app.api;
++
++import dev.aegisledger.application.CurrencyMismatchException;
++import dev.aegisledger.application.IdempotencyConflictException;
++import dev.aegisledger.application.IdempotencyInProgressException;
++import dev.aegisledger.application.ResourceNotFoundException;
++import dev.aegisledger.domain.AccountUnavailableException;
++import dev.aegisledger.domain.InsufficientFundsException;
++import dev.aegisledger.domain.UnbalancedTransactionException;
++import jakarta.servlet.http.HttpServletRequest;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++import org.springframework.http.HttpStatus;
++import org.springframework.http.ResponseEntity;
++import org.springframework.web.bind.MethodArgumentNotValidException;
++import org.springframework.web.bind.annotation.ExceptionHandler;
++import org.springframework.web.bind.annotation.RestControllerAdvice;
++
++import java.util.UUID;
++
++@RestControllerAdvice
++public final class ApiExceptionHandler {
++    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
++
++    @ExceptionHandler({MethodArgumentNotValidException.class, IllegalArgumentException.class})
++    ResponseEntity<ErrorResponse> badRequest(Exception ex, HttpServletRequest request) {
++        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", ex.getMessage(), false, request);
++    }
++
++    @ExceptionHandler(UnbalancedTransactionException.class)
++    ResponseEntity<ErrorResponse> unbalanced(UnbalancedTransactionException ex, HttpServletRequest request) {
++        return error(HttpStatus.UNPROCESSABLE_ENTITY, "UNBALANCED_TRANSACTION", ex.getMessage(), false, request);
++    }
++
++    @ExceptionHandler(InsufficientFundsException.class)
++    ResponseEntity<ErrorResponse> insufficient(InsufficientFundsException ex, HttpServletRequest request) {
++        return error(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_FUNDS", ex.getMessage(), false, request);
++    }
++
++    @ExceptionHandler(AccountUnavailableException.class)
++    ResponseEntity<ErrorResponse> accountUnavailable(AccountUnavailableException ex, HttpServletRequest request) {
++        return error(HttpStatus.UNPROCESSABLE_ENTITY, "ACCOUNT_UNAVAILABLE", ex.getMessage(), false, request);
++    }
++
++    @ExceptionHandler(CurrencyMismatchException.class)
++    ResponseEntity<ErrorResponse> currency(CurrencyMismatchException ex, HttpServletRequest request) {
++        return error(HttpStatus.UNPROCESSABLE_ENTITY, "CURRENCY_MISMATCH", ex.getMessage(), false, request);
++    }
++
++    @ExceptionHandler(IdempotencyConflictException.class)
++    ResponseEntity<ErrorResponse> idempotencyConflict(IdempotencyConflictException ex, HttpServletRequest request) {
++        return error(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD", ex.getMessage(), false, request);
++    }
++
++    @ExceptionHandler(IdempotencyInProgressException.class)
++    ResponseEntity<ErrorResponse> idempotencyInProgress(IdempotencyInProgressException ex, HttpServletRequest request) {
++        return error(HttpStatus.CONFLICT, "IDEMPOTENCY_REQUEST_IN_PROGRESS", ex.getMessage(), true, request);
++    }
++
++    @ExceptionHandler(ResourceNotFoundException.class)
++    ResponseEntity<ErrorResponse> notFound(ResourceNotFoundException ex, HttpServletRequest request) {
++        return error(HttpStatus.NOT_FOUND, "TRANSACTION_OR_ACCOUNT_NOT_FOUND", ex.getMessage(), false, request);
++    }
++
++    @ExceptionHandler(Exception.class)
++    ResponseEntity<ErrorResponse> unexpected(Exception ex, HttpServletRequest request) {
++        String correlationId = correlationId(request);
++        log.error("Unhandled request failure correlationId={}", correlationId, ex);
++        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
++                .body(ErrorResponse.of("INTERNAL_ERROR", "Unexpected server error", correlationId, false));
++    }
++
++    private static ResponseEntity<ErrorResponse> error(HttpStatus status, String code, String message, boolean retryable, HttpServletRequest request) {
++        return ResponseEntity.status(status).body(ErrorResponse.of(code, safe(message), correlationId(request), retryable));
++    }
++
++    private static String safe(String message) { return message == null || message.isBlank() ? "Request failed" : message; }
++    private static String correlationId(HttpServletRequest request) {
++        Object value = request.getAttribute(CorrelationIdFilter.ATTRIBUTE);
++        return value == null ? UUID.randomUUID().toString() : value.toString();
++    }
++}
+diff --git a/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/CorrelationIdFilter.java b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/CorrelationIdFilter.java
+new file mode 100644
+index 0000000..0dc6e68
+--- /dev/null
++++ b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/CorrelationIdFilter.java
+@@ -0,0 +1,31 @@
++package dev.aegisledger.app.api;
++
++import jakarta.servlet.FilterChain;
++import jakarta.servlet.ServletException;
++import jakarta.servlet.http.HttpServletRequest;
++import jakarta.servlet.http.HttpServletResponse;
++import org.springframework.stereotype.Component;
++import org.springframework.web.filter.OncePerRequestFilter;
++
++import java.io.IOException;
++import java.util.UUID;
++import java.util.regex.Pattern;
++
++@Component
++public final class CorrelationIdFilter extends OncePerRequestFilter {
++    public static final String HEADER = "X-Correlation-Id";
++    public static final String ATTRIBUTE = CorrelationIdFilter.class.getName() + ".correlationId";
++    private static final Pattern SAFE = Pattern.compile("[A-Za-z0-9._:-]{1,128}");
++
++    @Override
++    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
++            throws ServletException, IOException {
++        String provided = request.getHeader(HEADER);
++        String correlationId = provided != null && SAFE.matcher(provided).matches()
++                ? provided
++                : UUID.randomUUID().toString();
++        request.setAttribute(ATTRIBUTE, correlationId);
++        response.setHeader(HEADER, correlationId);
++        filterChain.doFilter(request, response);
++    }
++}
+diff --git a/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/ErrorResponse.java b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/ErrorResponse.java
+new file mode 100644
+index 0000000..d212a7f
+--- /dev/null
++++ b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/ErrorResponse.java
+@@ -0,0 +1,8 @@
++package dev.aegisledger.app.api;
++
++public record ErrorResponse(ErrorBody error) {
++    public record ErrorBody(String code, String message, String correlationId, boolean retryable) {}
++    public static ErrorResponse of(String code, String message, String correlationId, boolean retryable) {
++        return new ErrorResponse(new ErrorBody(code, message, correlationId, retryable));
++    }
++}
+diff --git a/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/RequestHasher.java b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/RequestHasher.java
+new file mode 100644
+index 0000000..130660d
+--- /dev/null
++++ b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/RequestHasher.java
+@@ -0,0 +1,33 @@
++package dev.aegisledger.app.api;
++
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++import java.security.NoSuchAlgorithmException;
++import java.util.HexFormat;
++
++public final class RequestHasher {
++    private RequestHasher() {}
++
++    public static String sha256(TransactionRequest request) {
++        StringBuilder canonical = new StringBuilder();
++        append(canonical, request.ledgerId().toString());
++        append(canonical, request.currency());
++        append(canonical, request.reference());
++        append(canonical, request.effectiveAt().toString());
++        for (TransactionRequest.Entry entry : request.entries()) {
++            append(canonical, entry.accountId().toString());
++            append(canonical, entry.direction());
++            append(canonical, Long.toString(entry.amountMinor()));
++        }
++        try {
++            MessageDigest digest = MessageDigest.getInstance("SHA-256");
++            return HexFormat.of().formatHex(digest.digest(canonical.toString().getBytes(StandardCharsets.UTF_8)));
++        } catch (NoSuchAlgorithmException impossible) {
++            throw new IllegalStateException("SHA-256 unavailable", impossible);
++        }
++    }
++
++    private static void append(StringBuilder out, String value) {
++        out.append(value.length()).append(':').append(value).append('|');
++    }
++}
+diff --git a/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/TransactionController.java b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/TransactionController.java
+new file mode 100644
+index 0000000..d8ccdd4
+--- /dev/null
++++ b/products/aegis-ledger/aegis-app/src/main/java/dev/aegisledger/app/api/TransactionController.java
+@@ -0,0 +1,81 @@
++package dev.aegisledger.app.api;
++
++import dev.aegisledger.application.GetTransactionUseCase;
