@@ -35,8 +35,8 @@ Deliver a production-evaluable financial ledger in evidence-producing vertical s
 **Depends on:** stable WP-04 event contract.  
 **Deliver:** versioned transaction-posted event contract, Debezium config, Kafka consumer, durable consumer deduplication, read projection, replay/rebuild behavior and lag/duplicate tests. Redis/OpenSearch remain derived optimizations and must not become financial truth.  
 **Acceptance:** a committed journal produces an outbox event; duplicate event delivery creates one projection effect; consumer crash/replay is safe; projection can be rebuilt from durable events/source facts; ledger correctness does not depend on Kafka/Redis/OpenSearch availability.  
-**Verify:** Maven integration tests plus broker/consumer tests when Kafka Testcontainers path is introduced.  
-**State:** ACTIVE — next implementation package.
+**Verify:** Maven integration tests plus embedded broker consumer tests; CDC runtime smoke remains a separate operational check.  
+**State:** IMPLEMENTED / VERIFYING — self-contained v1 event, RLS projection schema, durable dedupe, Kafka listener and duplicate/rebuild integration test are committed; CI evidence pending.
 
 ## WP-07 Holds / Capture / Refund / Reversal — Owner: Backend + Database
 **Depends on:** WP-04 and stable event contracts from WP-06.  
@@ -75,7 +75,7 @@ Deliver a production-evaluable financial ledger in evidence-producing vertical s
 - Framework-free domain smoke: PASS
 
 ## Immediate dependency order
-1. Execute WP-06 event contract + durable projection/deduplication slice.
-2. Expand WP-05 MVC/auth contract tests while WP-06 contracts stabilize.
-3. Proceed to WP-07 only after event semantics are stable.
+1. Finish WP-06 CI verification and CDC runtime smoke.
+2. Expand WP-05 MVC/auth contract tests while event semantics remain frozen at v1.
+3. Proceed to WP-07 only after WP-06 evidence is green.
 4. Keep QA/audit gates independent and unopened until feature/verification evidence is complete.
