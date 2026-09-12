@@ -1,2 +1,0 @@
-AegisLedger CI is managed from repository-root .github/workflows/aegis-ledger-ci.yml.
-This marker keeps product-local CI ownership explicit and is safe to remove once branch CI evidence is established.
